@@ -12,9 +12,9 @@ To achieve PFS, the protocol must transition from Key Transport to Key Agreement
 
 In the TLS implementation, for example, instead of using the server's static certificate key to encrypt a secret, the parties generate a one-time asymmetric key pair "on the fly" for each individual session. The procedural details are as follows:
 
--Since Temporary keys are not certified, the server sends its ephemeral public parameter, inside the Server Key Exchange message.
--The Server Key Exchange message is the only message in the handshake explicitly signed by the server's long-term private key to prove its identity to the client.
--The long-term private key is used exclusively for authentication, via signing, rather than confidentiality. If the long-term key is discovered, it leads to authentication failures but cannot be used to decrypt past records, as the ephemeral keys used for that traffic were never stored and have been deleted.
+- Since Temporary keys are not certified, the server sends its ephemeral public parameter, inside the Server Key Exchange message.
+- The Server Key Exchange message is the only message in the handshake explicitly signed by the server's long-term private key to prove its identity to the client.
+- The long-term private key is used exclusively for authentication, via signing, rather than confidentiality. If the long-term key is discovered, it leads to authentication failures but cannot be used to decrypt past records, as the ephemeral keys used for that traffic were never stored and have been deleted.
 
 ---
 
