@@ -116,32 +116,28 @@ To address the soft-fail weakness of standard stapling, the X.509 certificate ex
 
 SSH separates authentication into two distinct phases to ensure that client credentials are only transmitted after a secure, encrypted channel has been established.
 
-### 1. Server Authentication
-
-This is the first step in an SSH connection, ensuring the client is connecting to the correct server.
+1. **Server Authentication**: This is the first step in an SSH connection, ensuring the client is connecting to the correct server.
 It uses an asymmetric challenge-response mechanism where the server proves its identity by performing a digital signature on the Key Exchange Hash. The client verifies this signature against its local database of trusted public keys.
 
-- **Weaknesses:**
-  - **TOFU:** If the server's key is missing from the client's known_hosts file, the user is prompted to accept the key blindly based on a fingerprint. This relies entirely on human verification.
-  - **MITM:** Since SSH traditionally lacks a hierarchical PKI, it is vulnerable to Man-In-The-Middle attacks if a user ignores warnings and accepts a malicious server's public key.
+   - **Weaknesses:**
+      - **TOFU:** If the server's key is missing from the client's known_hosts file, the user is prompted to accept the key blindly based on a fingerprint. This relies entirely on human verification.
+      - **MITM:** Since SSH traditionally lacks a hierarchical PKI, it is vulnerable to Man-In-The-Middle attacks if a user ignores warnings and accepts a malicious server's public key.
 
-### 2. Client Authentication
+2. **Client Authentication**: This step occurs only after the encrypted channel is established.
 
-This step occurs only after the encrypted channel is established.
+   - **Methods:**
+      1. **Username and Password:**
+         The client sends the plaintext credentials to the server over the encrypted channel.
+         - **Weaknesses:**
+            - Despite encryption, it remains vulnerable to on-line password enumeration and brute-force attacks.
 
-- **Methods:**
-  1. **Username and Password:**
-     The client sends the plaintext credentials to the server over the encrypted channel.
-     - **Weaknesses:**
-       - Despite encryption, it remains vulnerable to on-line password enumeration and brute-force attacks.
+      2. **Public Key Authentication:**
+         An asymmetric challenge-response is used. The client proves possession of a private key without ever sending it over the network. The server checks the client's signature against the ~/.ssh/authorized_keys file.
+         - **Weaknesses:**
+            - The security relies entirely on the client's platform integrity. Malware can inject malicious DLLs to steal credentials or private keys.
 
-  2. **Public Key Authentication:**
-     An asymmetric challenge-response is used. The client proves possession of a private key without ever sending it over the network. The server checks the client's signature against the ~/.ssh/authorized_keys file.
-     - **Weaknesses:**
-       - The security relies entirely on the client's platform integrity. Malware can inject malicious DLLs to steal credentials or private keys.
-
-  3. **Other Methods:**
-     - Methods like X.509 certificates or GSS-API.
+      3. **Other Methods:**
+         - Methods like X.509 certificates or GSS-API.
 
 ---
 
