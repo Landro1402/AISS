@@ -4,10 +4,14 @@
 
 "What is perfect forward secrecy? What is the problem if the protocol does not have it? Show an example of implementation."
 
-Perfect Forward Secrecy is a property of a security protocol ensuring that the compromise of the long-term private key used for key exchange does not compromise past session keys. Consequently, a leak of the long-term secret only affects current and eventually future traffic, while past encrypted communications remain confidential.
+- Perfect Forward Secrecy is a property of a security protocol ensuring that the compromise of the long-term private key used for key exchange does not compromise past session keys. Consequently, a leak of the long-term secret only affects current and eventually future traffic, while past encrypted communications remain confidential.
+
 If a protocol does not implement PFS, an attacker can record and store all encrypted traffic over time. If the attacker later obtains the server's long-term private key, they can decrypt every previously recorded session.
+
 To achieve PFS, the protocol must transition from Key Transport to Key Agreement using Ephemeral Key Exchange such as DHE or ECDHE.
+
 In the TLS implementation, for example, instead of using the server's static certificate key to encrypt a secret, the parties generate a one-time asymmetric key pair "on the fly" for each individual session. The procedural details are as follows:
+
 -Since Temporary keys are not certified, the server sends its ephemeral public parameter, inside the Server Key Exchange message.
 -The Server Key Exchange message is the only message in the handshake explicitly signed by the server's long-term private key to prove its identity to the client.
 -The long-term private key is used exclusively for authentication, via signing, rather than confidentiality. If the long-term key is discovered, it leads to authentication failures but cannot be used to decrypt past records, as the ephemeral keys used for that traffic were never stored and have been deleted.
@@ -16,7 +20,7 @@ In the TLS implementation, for example, instead of using the server's static cer
 
 ## 2. Authentication and Handshake
 
-Describe TLS client authentication: how it works, and its advantages and disadvantages. Specifically, discuss TLS 1.2 handshakes with ephemeral keys, distinguishing between scenarios with and without client authentication.
+"Describe TLS client authentication: how it works, and its advantages and disadvantages. Specifically, discuss TLS 1.2 handshakes with ephemeral keys, distinguishing between scenarios with and without client authentication."
 
 TLS Client Authentication is an optional mechanism that establishes mutual authentication, allowing both the server and the client to verify each other's identities.
 
@@ -74,35 +78,35 @@ This mechanism ensures that even if multiple connections share the same session 
 
 Browser-based solutions were developed to overcome the limitations of traditional revocation checking, such as privacy leaks and performance latency.
 
-1. **Pushed CRLs**
-   In this model, browser vendors identify revoked certificates, focusing on those originating from a compromised intermediate CA, and push these lists directly to the browser via software updates.
+### Pushed CRLs
+In this model, browser vendors identify revoked certificates, focusing on those originating from a compromised intermediate CA, and push these lists directly to the browser via software updates.
 
-   ### Advantages:
-  **Privacy:** The client does not contact the CA, preventing the CA from tracking which sites the user is visiting.
-  **Performance:** Eliminates the network latency required to fetch revocation data during the TLS handshake.
-   ### Disadvantages:
-  **Completeness:** Due to list size constraints, these sets only contain a fraction of all revoked certificates (usually focusing on high-impact intermediate CAs).
-  **Freshness:** The data is only as current as the last browser update.
+#### Advantages:
+**Privacy:** The client does not contact the CA, preventing the CA from tracking which sites the user is visiting.
+**Performance:** Eliminates the network latency required to fetch revocation data during the TLS handshake.
+#### Disadvantages:
+**Completeness:** Due to list size constraints, these sets only contain a fraction of all revoked certificates (usually focusing on high-impact intermediate CAs).
+**Freshness:** The data is only as current as the last browser update.
 
-2. **OCSP Stapling**
-   OCSP Stapling is a TLS extension where the TLS server autonomously obtains the signed OCSP response from the CA and passes ("staples") it to the client along with its certificate during the handshake.
+### OCSP Stapling
+OCSP Stapling is a TLS extension where the TLS server autonomously obtains the signed OCSP response from the CA and passes ("staples") it to the client along with its certificate during the handshake.
 
-   ### Advantages:
-   **Privacy:** The CA only sees the server's IP address making requests, not the individual clients' IP addresses.
-   **Performance:** The client receives the status immediately with the certificate, removing the need for an external connection to an OCSP responder.
+#### Advantages:
+**Privacy:** The CA only sees the server's IP address making requests, not the individual clients' IP addresses.
+**Performance:** The client receives the status immediately with the certificate, removing the need for an external connection to an OCSP responder.
 
-  ### Disadvantages:
-   **Optionality:** Standard stapling is optional; if an attacker strips the stapled response, browsers typically default to a "soft-fail" behavior, meaning they ignore the missing status and proceed with the connection.
-   **Cache Duration:** The freshness depends on the server's cache refresh interval.
+#### Disadvantages:
+**Optionality:** Standard stapling is optional; if an attacker strips the stapled response, browsers typically default to a "soft-fail" behavior, meaning they ignore the missing status and proceed with the connection.
+**Cache Duration:** The freshness depends on the server's cache refresh interval.
 
-3. **OCSP Must Staple**
-   To address the soft-fail weakness of standard stapling, the X.509 certificate extension OCSP Must Staple was introduced. This extension is embedded directly within the server's certificate that signals to the browser that a stapled OCSP response is mandatory.
+### OCSP Must Staple
+To address the soft-fail weakness of standard stapling, the X.509 certificate extension OCSP Must Staple was introduced. This extension is embedded directly within the server's certificate that signals to the browser that a stapled OCSP response is mandatory.
 
-   ### Advantages:
-   **Security:** It effectively eliminates the "soft-fail" vulnerability by turning it into a "hard-fail"; the browser must reject the certificate if the stapled response is missing or invalid.
+#### Advantages:
+**Security:** It effectively eliminates the "soft-fail" vulnerability by turning it into a "hard-fail"; the browser must reject the certificate if the stapled response is missing or invalid.
 
-  ### Disadvantages:
-  **Availability Risk:** If the CA's OCSP responder is down and the server cannot fetch a fresh response, the website becomes completely inaccessible to users until a new response is available.
+#### Disadvantages:
+**Availability Risk:** If the CA's OCSP responder is down and the server cannot fetch a fresh response, the website becomes completely inaccessible to users until a new response is available.
 
 ---
 
@@ -186,16 +190,16 @@ The OCSP protcol, introduces several security and operational vulnerabilities:
 
 Validation in a hierarchical PKI requires constructing and verifying a certification path from the End Entity certificate up to a trusted Trust Anchor which is typically,a self-signed Root CA certificate.
 For each certificate in the chain the verifier must perform three checks:
-1 - Signature verification: checking the digital signature using the public key of the issuer
-2 - Temporal Validity - Ensuring the current time falls within the notBefore and notAfter period
-3 - Revocation Status - Verifying that the certificate has not been revoked by the CA.
+1. Signature verification: checking the digital signature using the public key of the issuer
+2. Temporal Validity - Ensuring the current time falls within the notBefore and notAfter period
+3. Revocation Status - Verifying that the certificate has not been revoked by the CA.
 
 To facilitate these operations, X.509v3 defines several key extension:
-1 - Authority Information Access: This extension indicates how to access information and services of the CA that issued the certificate. It defines two specific accessMethod types:
-  calssuers: used to fetch the issuer's certificate to aid in path construction
-  ocsp: used to locate the OCSP responder for real time validity checks.
-2 - Subject Information Access: is  also referred to as CA Information Access when present in CA certificates, this indicates how to access services provided by the subject of the certificate. it is different from AIA because it points to services the current certificate holder offers, rather than services offered by its issuer.
-3 - CRL Distribution Point: identifies the URI where the verifier can download the CRL. This is critical for scalability as it allows partitioning the CRL into smaller groups, preventing the need to download a single monolithic list of all revoked certificates.
+1. Authority Information Access: This extension indicates how to access information and services of the CA that issued the certificate. It defines two specific accessMethod types:
+   - **calssuers**: used to fetch the issuer's certificate to aid in path construction
+   - **ocsp**: used to locate the OCSP responder for real time validity checks.
+2. Subject Information Access: is  also referred to as CA Information Access when present in CA certificates, this indicates how to access services provided by the subject of the certificate. it is different from AIA because it points to services the current certificate holder offers, rather than services offered by its issuer.
+3. CRL Distribution Point: identifies the URI where the verifier can download the CRL. This is critical for scalability as it allows partitioning the CRL into smaller groups, preventing the need to download a single monolithic list of all revoked certificates.
 
 ---
 
@@ -205,13 +209,12 @@ To facilitate these operations, X.509v3 defines several key extension:
 
 To assess the status and validity of a digitally signed document without a-priori configuration, the Relying Party must perform dynamic discovery by exploiting the X.509v3 extensions embedded in the certificate.
 
+
 Initially, the RP checks the Validity field. Since the verification concerns a document, validity must be established relative to the signing time rather than the current verification time; this requires the presence of a Time-Stamp Token issued by a Time-Stamping Authority, which cryptographically proves the data existed before a specific timestamp, allowing the RP to verify that the certificate was valid at the moment of signing even if it is currently expired or revoked. 
-
 To check the revocation status, the RP discovers where to check for revocation using two specific extensions: 
-- **The CRL Distribuition Point** that provides the URI to download the Certificate Revocation List
-- **Authority Information Access**, using the ocsp access method to locate the OCSP responder for a real time verification.
-
-If the provided certificate chain is incomplete, the RP uses the AIA extension of the current certificate. By using calssuers access method, the RP can dynamically fetch the certificate of the issuing CA.
+The CRL Distribuition Point that provides the URI to download the Certificate Revocation List
+Authority Information Access, using the ocsp access method to locate the OCSP responder for a real time verification.
+If the provided certificate chain is incomplete, the RP uses the AIA extension of the current certificate. By using calssuers access method, the RP can dynamically fetch the certificate of the issuing CA
 The process of fetching issuers continues upward unitl a Trust Anchor is reached. Crucially, while intermediate certificate can be discovered dynamically, the root CA must already be present in the RP's local trust store. A root CA certificate cannot be downloaded and trusted blindly via AIA; it must be a-priori known to serve as the ultimate origin of trust for the entire chain.
 
 ---
@@ -230,7 +233,7 @@ Regarding key constraints, Key Usage restricts the specific cryptographic operat
 
 "What is secure timestamping and how does it work? What is possible to say about when a document was created, signed, and timestamped?"
 
-Secure timestamping is a mechanism used to provide a cryptographic proof of existence of a datum before a specific point in time, guaranteed by a Trusted Third Party called a Time-Stamping Authority. The process is defined in by RFC 3161 and involves the Time-Stamp Protocol. To preserve privacy, the client does not send the actual document but transmits its digest to the TSA. The TSA reads the time from a highly accurate source like an atomic clock and generates a Time-Stamp Token. This token contains the received hash and the date/time, digitally signed by the TSA to ensure authenticity and prevent tampering; if the document is modified after this point, the hash will not match, invalidating the token.
+Secure timestamping is a mechanism used to provide a cryptographic proof of existence of a datum before a specific point in time, guaranteed by a Trusted Third Party called a Time-Stamping Authority. The process is defined in by RFC 3161 and involves the Time-Stamp Protocol. To preserve privacy, the client does not send the actual document byt transmits its digest to the TSA. The TSA reads the time from a highly accurate source like an atomic clock and generates a Time-Stamp Token. This token contains the received hash and the date/time, digitally signed by the TSA to ensure authenticity and prevent tampering; if the document is modified after this point, the hash will not match, invalidating the token.
 
 Regarding the temporal status of the document:
 1. **Creation:** The timestamp is not a proof of creation at that specific instant; it only proves the document existed no later than the time indicated in the TST. The data could have been created minutes or years before.
@@ -273,13 +276,9 @@ The Verifier validates the digital signature and checks the nonce's freshness. F
 
 "Define Root of Trust: what is its role in Trusted Computing, and which kinds are implemented by a TPM? Describe the characteristics, features, and tasks of secure boot, trusted boot, and measured boot, clearly stating to which boot phases they apply and which security feature they offer."
 
-A Root of Trust is defined as a sofware or hardware component that must always behave in the expected manner because its misbehavior cannot be detected at runtime; it serves as the fundamental building block for establishing trust in a platform. 
-Within the context of Trusted Computing, the Trusted Platform Module implements two specific Root of Trust:
-1 - Root of Trust for Storage, which provides shielded locations to store integrity measurements
-2 -  Root of Trust for Reporting, which securely reports the contents of the RTS to external verifiers using digital signatures. 
-The TPM is not the Root of Trust for Measurement; the Core RTM is typically the immutable first instructions executed by the CPU that initiate the chain of trust.
+A Root of Trust (RoT) is defined as a component that must always behave in the expected manner because its misbehavior cannot be detected at runtime; it serves as the fundamental building block for establishing trust in a platform. Within the context of Trusted Computing, the Trusted Platform Module (TPM) implements the Root of Trust for Storage (RTS), which provides shielded locations (specifically Platform Configuration Registers or PCRs) to store integrity measurements, and the Root of Trust for Reporting (RTR), which securely reports the contents of the RTS to external verifiers using digital signatures. Notably, the TPM is not the Root of Trust for Measurement (RTM); the Core RTM (CRTM) is typically the immutable first instructions executed by the CPU (e.g., in the BootROM) that initiate the chain of trust.
 
-Regarding the boot processes, Secure Boot applies to the initial firmware and bootloader phases enforcing a prevention-based security policy where the firmware verifies the digital signature of the next component in the chain, and if verification fails, the platform is halted to prevent the execution of unauthorized code. Trusted Boot operates during the subsequent OS initialization phase; the OS verifies the signatures of these components, and if a check fails, the specific component is not loaded but the system may still continue to boot. Finally, Measured Boot spans the entire process from the CRTM through the OS and applications; it follows a "measure-then-load" paradigm where the hash of every component is computed and stored in the TPM's PCRs via the extend operation before execution. Unlike Secure Boot, Measured Boot does not stop execution; instead, it provides a tamper-evident log that allows an external entity to audit the platform's state via Remote Attestation.
+Regarding the boot processes, Secure Boot applies to the initial firmware and bootloader phases (up to the OS loader); it enforces a security policy where the firmware verifies the digital signature of the next component in the chain, and if verification fails, the platform is halted to prevent the execution of unauthorized code like rootkits or bootkits. Trusted Boot operates during the subsequent OS initialization phase (loading the Kernel, System Drivers, and Anti-malware); the OS verifies the signatures of these components, and if a check fails, the specific component is not loaded (though the system may continue to boot), ensuring only authorized drivers run. Finally, Measured Boot spans the entire process from the CRTM through the OS and applications; it follows a "measure-then-load" paradigm where the hash of every component is computed and stored in the TPM's PCRs via the extend operation before execution. Unlike Secure Boot, Measured Boot does not stop execution; instead, it provides a tamper-evident log (chain of trust) that allows an external entity to audit the platform's state via Remote Attestation.
 
 ---
 
@@ -287,23 +286,18 @@ Regarding the boot processes, Secure Boot applies to the initial firmware and bo
 
 "Describe the BB84 (or PK84) protocol. Discuss its strong and weak points (strengths and weaknesses), not only in theory but also with respect to its practical applications."
 
-The BB84 protocol establishes a shared symmetric key by transmitting quantum bits over a quantum channel, utilizing photon polarization states as the encoding mechanism. Alice sends random bits encoded in random bases, choosing between rectilinear and diagonal polarization; Bob measures incoming photons by independently selecting random bases. Subsequently, during the "key sifting" phase performed over a classical authenticated channel, Bob reveals his basis choices and Alice confirms which matches occurred, allowing them to discard bits where bases differed. The protocol concludes with error correction to handle transmission noise and privacy amplification to eliminate partial information leaked to an adversary.
+The BB84 protocol establishes a shared symmetric key by transmitting quantum bits (qubits) over a quantum channel (typically optical fiber), utilizing photon polarization states as the encoding mechanism. Alice sends random bits encoded in random bases, choosing between rectilinear (vertical/horizontal) and diagonal polarization; Bob measures incoming photons by independently selecting random bases. Subsequently, during the "key sifting" phase performed over a classical authenticated channel, Bob reveals his basis choices and Alice confirms which matches occurred, allowing them to discard bits where bases differed,. The protocol concludes with error correction to handle transmission noise and privacy amplification (hashing) to eliminate partial information leaked to an adversary,.
 
-Strengths and Weaknesses:
-Theoretically, the protocol offers unconditional security based on the laws of quantum physics,specifically the No-Cloning Theorem and the observer effect; any eavesdropping attempt requires measurement, which inevitably alters the quantum state and introduces detectable Quantum Bit Error Rate (QBER). However, practical application faces severe limitations. First, QKD is not a standalone solution as it strictly requires a pre-existing authenticated classical channel to prevent Man-in-the-Middle attacks during sifting. Second, physical constraints limit the distance to approximately 100 km and throughput to 1 Mbps because quantum signals cannot be amplified; extending range requires "trusted nodes", which forces hop-by-hop security rather than end-to-end encryption. Finally, hardware imperfections in photon sources expose the system to the Photon Number Splitting attack, where an adversary splits multi-photon pulses to steal information undetected, a vulnerability that necessitates the use of the Decoy State protocol as a countermeasure.
+Strengths and Weaknesses Theoretically, the protocol offers unconditional security based on the laws of physics (specifically the No-Cloning Theorem and the observer effect); any eavesdropping attempt (Eve) requires measurement, which inevitably alters the quantum state and introduces detectable errors (QBER),,. However, practical application faces severe limitations. First, QKD is not a standalone solution as it strictly requires a pre-existing authenticated classical channel to prevent Man-in-the-Middle attacks during sifting,. Second, physical constraints limit the distance to approximately 100 km and throughput to 1 Mbps because quantum signals cannot be amplified; extending range requires "trusted nodes", which forces hop-by-hop security rather than end-to-end encryption,. Finally, hardware imperfections in photon sources expose the system to the Photon Number Splitting (PNS) attack, where Eve splits multi-photon pulses to steal information undetected, a vulnerability that necessitates the use of the Decoy State protocol mitigation,.
 
 ## 16. Signatures Format
 
 Describe the formats of documents’ digital signature: enveloping,
 enveloped, and detached signatures. Which one is implemented/used in PDF?
 
-Electronic signatures relate to the signed document structure in three fundamental formats: enveloping, enveloped, and detached. 
-In the enveloping format, the digital signature effectively functions as a container that encapsulates the original document content; the data is located inside the signature object like a PKCS#7, meaning that the document must be extracted to be read. 
-Conversely, the enveloped format embeds the digital signature within the document file structure itself; the file format must support a specific "hole" or placeholder to store the cryptographic blob, allowing the document to remain readable by standard applications while carrying its own authentication. 
-Finally, the detached format maintains the document and the signature as separate entities; this preserves the original file but requires the relying party to manage the link between the two files to ensure verification
+Electronic signatures relate to the signed document structure in three fundamental formats: enveloping, enveloped, and detached. In the enveloping format, the digital signature effectively functions as a container that encapsulates the original document content; the data is located inside the signature object (e.g., PKCS#7), requiring extraction to be read,. Conversely, the enveloped format embeds the digital signature within the document file structure itself; the file format must support a specific "hole" or placeholder to store the cryptographic blob, allowing the document to remain readable by standard applications while carrying its own authentication (e.g., PDF or XML-DSig),. Finally, the detached format maintains the document and the signature as separate entities (files); while this preserves the original file without modification, it introduces the complexity of maintaining the link between the data and its signature to ensure verification,.
 
-The PDF standard implements the enveloped signature format to ensure the file remains a valid, readable PDF. The document is treated as a byte stream where a specific dictionary reserves space for the signature; the /ByteRange parameter explicitly identifies the two byte intervals, the part before and after the reserved hole that constitute the signed content. 
-The hash is computed over these disjoint ranges and encrypted with the signer's private key. Technically, the resulting cryptographic value inserted into the reserved space is encoded as a PKCS#7 detached signature blob,typically in hex encoding, padded with zeros, creating a hybrid where a detached standard is used inside an enveloped file format. To support multiple signatures without invalidating previous ones, PDF utilizes incremental updates, where subsequent modifications and signatures are appended to the end of the file rather than modifying the original byte stream,.
+PDF Implementation: The PDF standard implements the enveloped signature format to ensure the file remains a valid, readable PDF. The document is treated as a byte stream where a specific dictionary reserves space for the signature; the /ByteRange parameter explicitly identifies the two byte intervals (the part before and the part after the reserved "hole") that constitute the signed content,. The hash is computed over these disjoint ranges and encrypted with the signer's private key. Technically, the resulting cryptographic value inserted into the reserved space is encoded as a PKCS#7 detached signature blob (typically in hex encoding, padded with zeros), creating a hybrid where a detached standard is used inside an enveloped file format,. To support multiple signatures (workflows) without invalidating previous ones, PDF utilizes incremental updates, where subsequent modifications and signatures are appended to the end of the file rather than modifying the original byte stream,.
 
 ---
 
@@ -311,18 +305,11 @@ The hash is computed over these disjoint ranges and encrypted with the signer's 
 
 "Draw/Explain the eIDAS infrastructure and its actors. Where is SAML used in it and what are its properties (including SAML assertions)? Discuss the Google Apps SSO scheme (Google SAML) as a comparative example."
 
-The eIDAS infrastructure enables cross-border electronic identification by connecting a Service Provider in a Receiving Member State to a user from a Sending MS. The architecture relies on two critical nodes: 
-The eIDAS Connector located in the Receiving MS, which requests authentication on behalf of the SP. 
-The eIDAS Service located in the Sending MS, which bridges the request to national Identity Providers. It can be implemented as a Proxy Service managed by the sending MS or as Middleware Service provided by the Sending MS but running in the environment of the Receiving MS.
+The eIDAS infrastructure facilitates cross-border electronic identification by connecting a Service Provider (SP) in a Receiving Member State (MS) to a user from a Sending MS. The architecture relies on two critical nodes: the eIDAS Connector located in the Receiving MS, which requests authentication, and the eIDAS Service in the Sending MS, which provides the identity assertions. The eIDAS Service acts as a bridge to national Identity Providers (IdPs) and can be implemented as a Proxy Service (a centralized gateway, e.g., Italy) or a Middleware Service (decentralized software running in the Receiving MS, e.g., Germany),,.
 
-SAML 2.0 is the mandatory interoperability protocol used for the cross-border exchange between the Connector and the Service. 
-The SAML Request contains no personal data but must be digitally signed to authenticate the requesting MS. it is sent from the service to the connector via HTTP Redirect or POST.
-The SAML Response is sent from the Service to the Connector. It must be digitally signed and contain an <EncryptedAssertion> to protect Personally Identifiable Information. The response includes an AuthnStatement and an AttributeStatement containing the Minimum Data Set, which is the mandatory set of attributes to identify a person across borders.
-eIDAS specifies strict crypto: AES-GCM for data encryption and RSA-OAEP or ECDH-ES for key protection.
+SAML is the mandatory interoperability protocol used for the cross-border exchange between the Connector and the Service. The SAML Request contains no personal data but must be digitally signed to authenticate the requesting MS, transmitted via HTTP Redirect or POST,. The SAML Response carries the user's identity and requires higher security: it must be digitally signed and contain an EncryptedAssertion (protecting personal data via AES-GCM and key transport via RSA-OAEP or ECDH-ES) which includes the AuthnStatement and the AttributeStatement (the Minimum Data Set), transmitted via POST binding to the Connector's Assertion Consumer Service (ACS),.
 
-In contrast, the Google Apps SSO scheme is a direct relationship model. Google acts as the SP, while the Partner company acts as the IdP.
-Google generates a SAML request, including the ACS URL and the service URL in opaque mode, and redirects the browser to the Partner's SSO URL.
-Unlike eIDAS, Google's model relies on a digitally signed response but does not mandate the complex assertion encryption required by the eIDAS cross-border technical specifications.
+Comparative Example: Google Apps SSO In contrast, the Google Apps SSO scheme utilizes a standard SAML 2.0 Web Browser SSO profile where the Partner company acts as the IdP and Google acts as the SP. Unlike the multi-hop eIDAS architecture, Google's model is a direct relationship: Google generates a SAML request containing the ACS URL and the specific service URL (in opaque mode) and redirects the browser to the Partner's SSO URL; after authentication, the Partner generates a digitally signed SAML response (without the mandatory encryption requirements of eIDAS) and returns it to Google's ACS for verification,,.
 
 ---
 
@@ -330,13 +317,7 @@ Unlike eIDAS, Google's model relies on a digitally signed response but does not 
 
 "Explain what are PEP (Policy Enforcement Point) and PDP (Policy Decision Point). Make an example of their real implementations. Describe which SAML messages and in which way could be used to support their operations."
 
-In a policy-based access control architecture, roles are separated to ensure centralized management and security.
-
-The Policy Enforcement Point serves as the gateway protecting a specific resource, effectively acting as the "guard at the door" that intercepts access requests and enforces the final admission decision (permit or deny). It does not make decisions itself but it relies on the PDP
-The Policy Decision Point is the centralized entity responsible for evaluating these requests against access policies, subject attributes, and environmental context to render a judgment. I
-n real-world implementations, a PEP is typically embedded within components such as a web server, firewall, or XML gateway, which block traffic until explicit authorization is granted, while the PDP is a centralized server, often implementing XACML logic, that allows for delegated authorization across an organization. 
-To support these operations, SAML defines a query-response model where the PEP acts as the system entity requester by sending a SAML Authorization Decision Query to the PDP, explicitly asking for a ruling on a specific subject's access rights regarding a resource. 
-The PDP acts as the asserting party and responds with a SAML Authorization Decision Assertion; this assertion contains an <AuthorizationStatement> that explicitly declares the decision based on the evidence provided, which the PEP then consumes to enforce the access control decision.
+The Policy Enforcement Point (PEP) serves as the gateway protecting a specific resource, effectively acting as the "guard at the door" that intercepts access requests and enforces the final admission decision (permit or deny), whereas the Policy Decision Point (PDP) is the centralized entity responsible for evaluating these requests against access policies, subject attributes, and environmental context to render a judgment. In real-world implementations, a PEP is typically embedded within components such as a web server, firewall, or XML gateway, which block traffic until authorization is granted, while the PDP is a centralized server (often implementing XACML logic) that allows for delegated authorization across an organization. To support these operations, SAML defines a producer-consumer model where the PEP acts as the system entity requester by sending a SAML Authorization Decision Query to the PDP, explicitly asking for a ruling on a specific subject's access rights regarding a resource. The PDP acts as the asserting party and responds with a SAML Authorization Decision Assertion; this assertion contains an <AuthorizationStatement> that explicitly declares the decision (e.g., Decision="Permit" or Decision="Deny") based on the evidence provided, which the PEP then consumes to enforce the access control decision.
 
 ---
 
@@ -344,16 +325,16 @@ The PDP acts as the asserting party and responds with a SAML Authorization Decis
 
 "Describe the Delegated Authentication model. Outline two possible scenarios and the related problems."
 
-In a delegated authentication model, Relying Parties delegate the task of user verification to a separate trusted third party, the Authentication Server. Instead of managing local databases, the RP redirects the client to the AS, which executes the authentication protocol. Upon success, the AS generates an authentication ticket certifying the user's identity, which is then transmitted to the RP and consumed to authorize access.
+In distributed systems, Relying Parties (RP) (application servers) delegate the task of user verification to a trusted third party, the Authentication Server (AS). Instead of managing local databases, the RP redirects the client to the AS, which executes the authentication protocol (e.g., password, challenge-response). Upon success, the AS generates an authentication ticket (or assertion) certifying the user's identity, which is then transmitted to the RP to authorize access,.
 
-Transmission Scenarios:
+Transmission Scenarios
 
-1. **Direct Push:** The AS sends the authentication ticket directly to the RP. This requires the RP to have an active listening service to receive the connection from the AS.
-2. **Indirect Push:** The AS sends the ticket or a reference known as an artifact to the Client, which forwards it to the RP. If a reference is used, the RP subsequently "pulls" the actual ticket from the AS. This method is often preferred when the RP is behind a firewall that blocks incoming connections from the AS.
+1. **Push Ticket:** The AS sends the ticket directly to the RP. This requires the RP to have an active listening service to receive the connection from the AS.
+2. **Indirect Push (or Push Reference + Pull):** The AS sends the ticket (or a reference/artifact) to the Client, which forwards it to the RP. If a reference is used, the RP subsequently "pulls" the actual ticket from the AS. This method is often preferred when the RP is behind a firewall that blocks incoming connections from the AS,.
 
 Related Problems
 
-- **Binding:** there must be a mechanism to ensure the ticket is bound to the specific client that performed the authentication, preventing malicious nodes from stealing and presenting a valid ticket.
-- **Ticket Integrity & Authenticity:** The RP must be certain the ticket was generated by the trusted AS and has not been modified. This requires the AS to digitally sign the ticket.
-- **Replay and Reuse:** Attackers may intercept a valid ticket to replay it later or reuse it on a different server; mitigation requires timestamps, short validity periods, and audience restrictions.
-- **Network Constraints:** The direct push model faces issues if the RP has incoming firewalls blocking the AS; the indirect model exposes the ticket to potential sniffing at the client side, requiring encryption for privacy.
+- **Binding:** Ensuring the ticket is bound to the specific client node presenting it, preventing theft and use by others,.
+- **Ticket Integrity & Authenticity:** Preventing manipulation (forging data) or creation of fake tickets; this requires the ticket to be digitally signed by the AS,.
+- **Replay and Reuse:** Attackers may intercept a valid ticket to use it later (replay) or on a different server (reuse); mitigation requires timestamps, short validity periods, and audience restrictions,.
+- **Network Constraints:** The "Push" model faces issues if the RP has incoming firewalls blocking the AS; the "Indirect" model exposes the ticket to potential sniffing at the client side, requiring encryption for privacy,.
