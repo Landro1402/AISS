@@ -82,31 +82,35 @@ Browser-based solutions were developed to overcome the limitations of traditiona
 In this model, browser vendors identify revoked certificates, focusing on those originating from a compromised intermediate CA, and push these lists directly to the browser via software updates.
 
 #### Advantages:
-**Privacy:** The client does not contact the CA, preventing the CA from tracking which sites the user is visiting.
-**Performance:** Eliminates the network latency required to fetch revocation data during the TLS handshake.
+- **Privacy:** The client does not contact the CA, preventing the CA from tracking which sites the user is visiting.
+
+- **Performance:** Eliminates the network latency required to fetch revocation data during the TLS handshake.
 #### Disadvantages:
-**Completeness:** Due to list size constraints, these sets only contain a fraction of all revoked certificates (usually focusing on high-impact intermediate CAs).
-**Freshness:** The data is only as current as the last browser update.
+- **Completeness:** Due to list size constraints, these sets only contain a fraction of all revoked certificates (usually focusing on high-impact intermediate CAs).
+
+- **Freshness:** The data is only as current as the last browser update.
 
 ### OCSP Stapling
 OCSP Stapling is a TLS extension where the TLS server autonomously obtains the signed OCSP response from the CA and passes ("staples") it to the client along with its certificate during the handshake.
 
 #### Advantages:
-**Privacy:** The CA only sees the server's IP address making requests, not the individual clients' IP addresses.
-**Performance:** The client receives the status immediately with the certificate, removing the need for an external connection to an OCSP responder.
+- **Privacy:** The CA only sees the server's IP address making requests, not the individual clients' IP addresses.
+
+- **Performance:** The client receives the status immediately with the certificate, removing the need for an external connection to an OCSP responder.
 
 #### Disadvantages:
-**Optionality:** Standard stapling is optional; if an attacker strips the stapled response, browsers typically default to a "soft-fail" behavior, meaning they ignore the missing status and proceed with the connection.
-**Cache Duration:** The freshness depends on the server's cache refresh interval.
+- **Optionality:** Standard stapling is optional; if an attacker strips the stapled response, browsers typically default to a "soft-fail" behavior, meaning they ignore the missing status and proceed with the connection.
+
+- **Cache Duration:** The freshness depends on the server's cache refresh interval.
 
 ### OCSP Must Staple
 To address the soft-fail weakness of standard stapling, the X.509 certificate extension OCSP Must Staple was introduced. This extension is embedded directly within the server's certificate that signals to the browser that a stapled OCSP response is mandatory.
 
 #### Advantages:
-**Security:** It effectively eliminates the "soft-fail" vulnerability by turning it into a "hard-fail"; the browser must reject the certificate if the stapled response is missing or invalid.
+- **Security:** It effectively eliminates the "soft-fail" vulnerability by turning it into a "hard-fail"; the browser must reject the certificate if the stapled response is missing or invalid.
 
 #### Disadvantages:
-**Availability Risk:** If the CA's OCSP responder is down and the server cannot fetch a fresh response, the website becomes completely inaccessible to users until a new response is available.
+- **Availability Risk:** If the CA's OCSP responder is down and the server cannot fetch a fresh response, the website becomes completely inaccessible to users until a new response is available.
 
 ---
 
