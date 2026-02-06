@@ -247,13 +247,17 @@ In Trusted Computing, the TPM provides cryptographic isolation for data stored o
 - **Binding:** Encrypts data using a non-exportable RSA key managed by TPM. This key is part of a hierarchy that descends from the Storage Root Key. Data protected via binding is tied to a specific hardware device; it can only be decrypted by that specific TPM, but the operation is independent of the current software or platform state.
 - **Sealing:** An advanced form of binding that adds Mandatory Access Control based on the platform's integrity state. Data is decryptable only if the platform matches a specific hardware and software configuration.
 
-The Difference: Binding ensures data confidentiality tied to a specific physical machine. Sealing ensures data confidentiality tied to both the specific machine and a specific trusted state.
+**The Difference**: Binding ensures data confidentiality tied to a specific physical machine. Sealing ensures data confidentiality tied to both the specific machine and a specific trusted state.
 
-The Sealing Operation involves the following steps:
-The system components are measured during the boot sequence using the EXTEND operation, which accumulates hashes into the Platform Configuration Registers
-The TPM encrypts the data and attaches a sealing policy.This policy links the data to specific values of one or more PCRs. When an Unseal command is issued, the TPM hardware compares the current PCR values against the values required by the sealing policy. If and only if they match, the TPM releases the decryption key, otherwise the TPM refuses to release the key.
+**The Sealing Operation**:
 
-Real Application Example: Microsoft BitLocker seals the Volume Encryption Key within the TPM, targeting PCRs that represent the integrity of the BIOS, the Master Boot Record, and the boot configuration.
+1. **Measurements**: The system components are measured during the boot sequence using the EXTEND operation, which accumulates hashes into the Platform Configuration Registers
+
+2. **Sealing**:The TPM encrypts the data and attaches a sealing policy.This policy links the data to specific values of one or more PCRs. 
+
+3. **Unseal**: When an Unseal command is issued, the TPM hardware compares the current PCR values against the values required by the sealing policy. If and only if they match, the TPM releases the decryption key, otherwise the TPM refuses to release the key.
+
+**Real Application Example**: Microsoft BitLocker seals the Volume Encryption Key within the TPM, targeting PCRs that represent the integrity of the BIOS, the Master Boot Record, and the boot configuration.
 If an attacker installs a rootkit or modifies the boot sequence to intercept the password, the measurement of the boot components will change. Consequently, the PCR values will not match the sealed policy and the TPM will refuse to unseal the disk encryption key, preventing the compromised OS from starting.
 
 ---
@@ -262,9 +266,13 @@ If an attacker installs a rootkit or modifies the boot sequence to intercept the
 
 "Define and explain the procedure/process of remote attestation in a trusted computing environment."
 
-Remote Attestation is a challenge-response protocol used to provide verifiable evidence of a platform's hardware and software state to an external Verifier, establishing trust in the system's identity and integrity. The procedure begins with the Verifier sending a random Nonce to the Attester to prevent replay attacks. Upon receipt, the Attester invokes the TPM's Root of Trust for Reporting to retrieve the integrity measurements stored in the Platform Configuration Registers, which serve as the Root of Trust for Storage; these PCRs contain the accumulated digests of the boot sequence and potentially runtime measurements. The RTR generates a digital signature over the selected PCR values and the Nonce using an Attestation Identity Key. The AIA is restricted signign key generated inside the TPM to protect the platform's privacy. The resulting signed object is called a Quote.
-The Attester sends the Quote along with a Stored Measurement Log to the verifier.
-The Verifier validates the digital signature and checks the nonce's freshness. Finally, the verifier compares the reported measures against a database of Reference Measurements to determine if the platform is in a trustworthy state.
+Remote Attestation is a challenge-response protocol used to provide verifiable evidence of a platform's hardware and software state to an external Verifier, establishing trust in the system's identity and integrity. 
+
+Procedure:
+1. **Challenge**: The verifier sends a Nonce to the Attester to ensure freshness and prevent replay attacks.
+2. **Collection**: The Attester invokes the TPM's Root of Trust for Reporting to retrieve measurements from the Platform Configuration Registers. These PCRs serve as the Root of Trust for Storage and contain accumulated digests, via the EXTEND operation, of the boot sequence and runtime state.
+3. **The Quote**: The RTR generates a digital signature over the PCR values and the Nonce using an Attestation Identity Key. The AIK is a restricted signing key that acts as a privacy-preserving alias for the unique Endorsement Key. This signed object is called a Quote.
+4. **Verification**: The Attester sends the Quote and the Stored Measurement Log to the Verifier. The Verifier validates the AIK signature, checks the Nonce, and uses the SML to "re-play" the hashes. Finally, it compares the result against a database of Reference Measurements,the Golden Values, to determine the platform's integrity.
 
 ---
 
@@ -272,40 +280,63 @@ The Verifier validates the digital signature and checks the nonce's freshness. F
 
 "Define Root of Trust: what is its role in Trusted Computing, and which kinds are implemented by a TPM? Describe the characteristics, features, and tasks of secure boot, trusted boot, and measured boot, clearly stating to which boot phases they apply and which security feature they offer."
 
-A Root of Trust (RoT) is defined as a component that must always behave in the expected manner because its misbehavior cannot be detected at runtime; it serves as the fundamental building block for establishing trust in a platform. Within the context of Trusted Computing, the Trusted Platform Module (TPM) implements the Root of Trust for Storage (RTS), which provides shielded locations (specifically Platform Configuration Registers or PCRs) to store integrity measurements, and the Root of Trust for Reporting (RTR), which securely reports the contents of the RTS to external verifiers using digital signatures. Notably, the TPM is not the Root of Trust for Measurement (RTM); the Core RTM (CRTM) is typically the immutable first instructions executed by the CPU (e.g., in the BootROM) that initiate the chain of trust.
+A Root of Trust is defined as a component that must always behave in the expected manner because its misbehavior cannot be detected at runtime; it serves as the fundamental building block for establishing trust in a platform. 
 
-Regarding the boot processes, Secure Boot applies to the initial firmware and bootloader phases (up to the OS loader); it enforces a security policy where the firmware verifies the digital signature of the next component in the chain, and if verification fails, the platform is halted to prevent the execution of unauthorized code like rootkits or bootkits. Trusted Boot operates during the subsequent OS initialization phase (loading the Kernel, System Drivers, and Anti-malware); the OS verifies the signatures of these components, and if a check fails, the specific component is not loaded (though the system may continue to boot), ensuring only authorized drivers run. Finally, Measured Boot spans the entire process from the CRTM through the OS and applications; it follows a "measure-then-load" paradigm where the hash of every component is computed and stored in the TPM's PCRs via the extend operation before execution. Unlike Secure Boot, Measured Boot does not stop execution; instead, it provides a tamper-evident log (chain of trust) that allows an external entity to audit the platform's state via Remote Attestation.
+The Trusted Platform Module implements the Root of Trust for Storage, which provides shielded locations to store integrity measurements, and the Root of Trust for Reporting, which securely reports the contents of the RTS to external verifiers using digital signatures. 
+Notably, the TPM is not the Root of Trust for Measurement; the Core RTM is typically the immutable first instructions executed by the CPU that initiate the chain of trust.
+
+- **Secure Boot**: Secure boot applies to the initial firmware and bootloader phases; it is a prevention mechanism: it enforces a security policy where the firmware verifies the digital signature of the next component in the chain, and if verification fails, the platform is halted to prevent the execution of unauthorized code like rootkits or bootkits. 
+- **Trusted Boot**: Trusted Boot operates during the subsequent OS initialization phase; the OS verifies the signatures of these components, and if a check fails, the specific component is not loaded, ensuring only authorized drivers run. 
+- **Measured Boot**: Measured Boot spans the entire process from the CRTM through the OS and applications; it follows a "measure-then-load" paradigm where the hash of every component is computed and stored in the TPM's PCRs via the extend operation before execution. Unlike Secure Boot, Measured Boot does not stop execution; instead, it provides a tamper-evident log that allows an external entity to audit the platform's state via Remote Attestation.
 
 ---
 
 ## 15. Quantum Key Distribution
 
-"Describe the BB84 (or PK84) protocol. Discuss its strong and weak points (strengths and weaknesses), not only in theory but also with respect to its practical applications."
+"Describe the BB84 protocol. Discuss its strong and weak points, not only in theory but also with respect to its practical applications."
 
-The BB84 protocol establishes a shared symmetric key by transmitting quantum bits (qubits) over a quantum channel (typically optical fiber), utilizing photon polarization states as the encoding mechanism. Alice sends random bits encoded in random bases, choosing between rectilinear (vertical/horizontal) and diagonal polarization; Bob measures incoming photons by independently selecting random bases. Subsequently, during the "key sifting" phase performed over a classical authenticated channel, Bob reveals his basis choices and Alice confirms which matches occurred, allowing them to discard bits where bases differed,. The protocol concludes with error correction to handle transmission noise and privacy amplification (hashing) to eliminate partial information leaked to an adversary,.
+The BB84 protocol establishes a shared symmetric key by transmitting quantum bits over a quantum channel, utilizing photon polarization states as the encoding mechanism. Alice sends random bits encoded in random bases, choosing between rectilinear and diagonal polarization; Bob measures incoming photons by independently selecting random bases. Subsequently, during the "key sifting" phase performed over a classical authenticated channel, Bob reveals his basis choices and Alice confirms which matches occurred, allowing them to discard bits where bases differed,. The protocol concludes with error correction to handle transmission noise and privacy amplification to eliminate partial information leaked to an adversary.
 
-Strengths and Weaknesses Theoretically, the protocol offers unconditional security based on the laws of physics (specifically the No-Cloning Theorem and the observer effect); any eavesdropping attempt (Eve) requires measurement, which inevitably alters the quantum state and introduces detectable errors (QBER),,. However, practical application faces severe limitations. First, QKD is not a standalone solution as it strictly requires a pre-existing authenticated classical channel to prevent Man-in-the-Middle attacks during sifting,. Second, physical constraints limit the distance to approximately 100 km and throughput to 1 Mbps because quantum signals cannot be amplified; extending range requires "trusted nodes", which forces hop-by-hop security rather than end-to-end encryption,. Finally, hardware imperfections in photon sources expose the system to the Photon Number Splitting (PNS) attack, where Eve splits multi-photon pulses to steal information undetected, a vulnerability that necessitates the use of the Decoy State protocol mitigation,.
+**Strengths and Weaknesses**: Theoretically, the protocol offers unconditional security based on the laws of physics; any eavesdropping attempt requires measurement, which inevitably alters the quantum state and introduces detectable errors. However, practical application faces severe limitations. First, QKD is not a standalone solution as it strictly requires a pre-existing authenticated classical channel to prevent Man-in-the-Middle attacks during sifting. Second, physical constraints limit the distance to approximately 100 km and throughput to 1 Mbps because quantum signals cannot be amplified; extending range requires "trusted nodes", which forces hop-by-hop security rather than end-to-end encryption. Finally, hardware imperfections in photon sources expose the system to the Photon Number Splitting attack, where Eve splits multi-photon pulses to steal information undetected, a vulnerability that necessitates the use of the Decoy State protocol mitigation.
 
 ## 16. Signatures Format
 
 Describe the formats of documents’ digital signature: enveloping,
 enveloped, and detached signatures. Which one is implemented/used in PDF?
 
-Electronic signatures relate to the signed document structure in three fundamental formats: enveloping, enveloped, and detached. In the enveloping format, the digital signature effectively functions as a container that encapsulates the original document content; the data is located inside the signature object (e.g., PKCS#7), requiring extraction to be read,. Conversely, the enveloped format embeds the digital signature within the document file structure itself; the file format must support a specific "hole" or placeholder to store the cryptographic blob, allowing the document to remain readable by standard applications while carrying its own authentication (e.g., PDF or XML-DSig),. Finally, the detached format maintains the document and the signature as separate entities (files); while this preserves the original file without modification, it introduces the complexity of maintaining the link between the data and its signature to ensure verification,.
+Electronic signatures relate to the signed document structure in three fundamental formats: enveloping, enveloped, and detached. In the enveloping format, the digital signature effectively functions as a container that encapsulates the original document content; the data is located inside the signature object, requiring extraction to be read. Conversely, the enveloped format embeds the digital signature within the document file structure itself; the file format must support a specific "hole" or placeholder to store the cryptographic blob, allowing the document to remain readable by standard applications while carrying its own authentication. Finally, the detached format maintains the document and the signature as separate entities; while this preserves the original file without modification, it introduces the complexity of maintaining the link between the data and its signature to ensure verification.
 
-PDF Implementation: The PDF standard implements the enveloped signature format to ensure the file remains a valid, readable PDF. The document is treated as a byte stream where a specific dictionary reserves space for the signature; the /ByteRange parameter explicitly identifies the two byte intervals (the part before and the part after the reserved "hole") that constitute the signed content,. The hash is computed over these disjoint ranges and encrypted with the signer's private key. Technically, the resulting cryptographic value inserted into the reserved space is encoded as a PKCS#7 detached signature blob (typically in hex encoding, padded with zeros), creating a hybrid where a detached standard is used inside an enveloped file format,. To support multiple signatures (workflows) without invalidating previous ones, PDF utilizes incremental updates, where subsequent modifications and signatures are appended to the end of the file rather than modifying the original byte stream,.
+PDF Implementation: The PDF standard implements the enveloped signature format to ensure the file remains a valid, readable PDF. The document is treated as a byte stream where a specific dictionary reserves space for the signature; the /ByteRange parameter explicitly identifies the two byte intervals that constitute the signed content. The hash is computed over these disjoint ranges and encrypted with the signer's private key. Technically, the resulting cryptographic value inserted into the reserved space is encoded as a PKCS#7 detached signature blob, creating a hybrid where a detached standard is used inside an enveloped file format. To support multiple signatures without invalidating previous ones, PDF utilizes incremental updates, where subsequent modifications and signatures are appended to the end of the file rather than modifying the original byte stream.
 
 ---
 
 ## 17. SAML and eIDAS
 
-"Draw/Explain the eIDAS infrastructure and its actors. Where is SAML used in it and what are its properties (including SAML assertions)? Discuss the Google Apps SSO scheme (Google SAML) as a comparative example."
+"Draw/Explain the eIDAS infrastructure and its actors. Where is SAML used in it and what are its properties? Discuss the Google Apps SSO scheme as a comparative example."
 
-The eIDAS infrastructure facilitates cross-border electronic identification by connecting a Service Provider (SP) in a Receiving Member State (MS) to a user from a Sending MS. The architecture relies on two critical nodes: the eIDAS Connector located in the Receiving MS, which requests authentication, and the eIDAS Service in the Sending MS, which provides the identity assertions. The eIDAS Service acts as a bridge to national Identity Providers (IdPs) and can be implemented as a Proxy Service (a centralized gateway, e.g., Italy) or a Middleware Service (decentralized software running in the Receiving MS, e.g., Germany),,.
+The eIDAS infrastructure enables cross-border electronic identification by connecting a Service Provider in a Receiving Member State to a user from a Sending MS. The architecture relies on two primary nodes that facilitate a "multi-hop" communication flow:
 
-SAML is the mandatory interoperability protocol used for the cross-border exchange between the Connector and the Service. The SAML Request contains no personal data but must be digitally signed to authenticate the requesting MS, transmitted via HTTP Redirect or POST,. The SAML Response carries the user's identity and requires higher security: it must be digitally signed and contain an EncryptedAssertion (protecting personal data via AES-GCM and key transport via RSA-OAEP or ECDH-ES) which includes the AuthnStatement and the AttributeStatement (the Minimum Data Set), transmitted via POST binding to the Connector's Assertion Consumer Service (ACS),.
+- **eIDAS Connector:** Acts on behalf of the SP to request authentication from the user's home country.
 
-Comparative Example: Google Apps SSO In contrast, the Google Apps SSO scheme utilizes a standard SAML 2.0 Web Browser SSO profile where the Partner company acts as the IdP and Google acts as the SP. Unlike the multi-hop eIDAS architecture, Google's model is a direct relationship: Google generates a SAML request containing the ACS URL and the specific service URL (in opaque mode) and redirects the browser to the Partner's SSO URL; after authentication, the Partner generates a digitally signed SAML response (without the mandatory encryption requirements of eIDAS) and returns it to Google's ACS for verification,,.
+- **eIDAS Service:** Acts as an identity hub or bridge to national Identity Providers. It can be implemented as a Proxy Service or a Middleware Service.
+### SAML Usage and Properties
+
+SAML 2.0 is the mandatory interoperability protocol for the exchange between the Connector and the Service.
+
+- **SAML Request:** Sent from Connector to Service. It contains no personal data but must be digitally signed to authenticate the requesting Member State.
+
+- **SAML Response:** Sent from Service to Connector. It must be digitally signed and contain an <EncryptedAssertion> to protect the Minimum Data Set (MDS)—the mandatory attributes required to identify a person across borders.
+
+- **Technical Specs:** eIDAS mandates strict cryptography: AES-GCM for data encryption and RSA-OAEP or ECDH-ES for key transport.
+
+### Comparative Example: Google Apps SSO
+In contrast to eIDAS, the Google Apps SSO scheme is a direct relationship model following the standard SAML 2.0 Web Browser SSO profile.
+
+**Roles:** Google acts as the SP, while the Partner company acts as the IdP.
+
+**Process:** Google generates a SAML request containing the Assertion Consumer Service URL and the service URL. It redirects the browser directly to the Partner's SSO URL.
+
+**Key Difference:** Unlike the eIDAS multi-hop model, the connection is point-to-point. Furthermore, while Google requires digitally signed responses for integrity, it does not mandate the complex assertion-level encryption required for eIDAS cross-border privacy.
 
 ---
 
